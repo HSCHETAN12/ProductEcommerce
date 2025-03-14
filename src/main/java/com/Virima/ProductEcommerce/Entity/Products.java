@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @Entity
@@ -19,6 +20,7 @@ public class Products extends TrackingColumn {
     @ManyToOne
     @JoinColumn(name = "category_id")
     @JsonBackReference
+    @ToString.Exclude
     private Category category;
 
 
@@ -31,4 +33,7 @@ public class Products extends TrackingColumn {
 
     @Enumerated(EnumType.STRING)
     private ProductStatus status ;
+
+    public Products(int productId, int i, String sampleProduct) {
+    }
 }

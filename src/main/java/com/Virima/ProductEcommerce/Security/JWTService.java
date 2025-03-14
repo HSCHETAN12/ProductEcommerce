@@ -1,24 +1,18 @@
 package com.Virima.ProductEcommerce.Security;
 
-import com.Virima.ProductEcommerce.Entity.Role;
 import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
+
 @Service
 public class JWTService {
 
@@ -39,7 +33,7 @@ public class JWTService {
     public String generateToken(String username, String role) {
         Map<String, Object> claims = new HashMap<>();
         Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
-       String role1="ROLE_"+role;
+        String role1 = "ROLE_" + role;
         claims.put("role", role1); // Add the role as a claim
 //
 //        return Jwts.builder()
@@ -55,10 +49,10 @@ public class JWTService {
         JwtBuilder jwtBuilder = Jwts.builder()
                 .subject(username)
                 .claim("role", role1)
-              .issuedAt(Date.from(now))
-              .expiration(Date.from(expiry))
-               .signWith(key);
-               return jwtBuilder.compact();
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiry))
+                .signWith(key);
+        return jwtBuilder.compact();
     }
 
 //    public SecretKey getKey() {
@@ -112,7 +106,8 @@ public class JWTService {
 //        return claimResolver.apply(claims);
 //    }
 //
-////     Extract all claims from the token
+
+    /// /     Extract all claims from the token
 //    private Claims extractAllClaims(String token) {
 //        return Jwts.parser() // Use parserBuilder() for better flexibility and support
 //                .setSigningKey(getSigningKey()) // Use the correct signing key
@@ -158,38 +153,37 @@ public class JWTService {
 //        }
 //        return null;  // Return null if an exception occurred
 //    }
+    public Claims extractClaims(String token) {
+        try {
+            System.out.println("token: " + token);
 
-public Claims extractClaims(String token) {
-    try {
-        System.out.println("token: " + token);
+            // Ensure the secret key is at least 32 bytes long
+            if (secretKey.length() < 32) {
+                throw new IllegalArgumentException("Secret key must be at least 32 characters long!");
+            }
 
-        // Ensure the secret key is at least 32 bytes long
-        if (secretKey.length() < 32) {
-            throw new IllegalArgumentException("Secret key must be at least 32 characters long!");
+            SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
+
+            JwtParser jwtParser = Jwts.parser()
+                    .verifyWith(key)
+                    .build();
+            System.out.println("jwtParser: " + jwtParser);
+
+            return jwtParser.parseSignedClaims(token).getPayload();
+        } catch (ExpiredJwtException e) {
+            System.out.println("Error: Token is expired - " + e.getMessage());
+            return null;
+        } catch (MalformedJwtException e) {
+            System.out.println("Error: Malformed token - " + e.getMessage());
+            return null;
+        } catch (SecurityException e) {
+            System.out.println("Error: Invalid signature - " + e.getMessage());
+            return null;
+        } catch (Exception e) {
+            System.out.println("Error parsing JWT: " + e.getMessage());
+            return null;
         }
-
-        SecretKey key = Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
-
-        JwtParser jwtParser = Jwts.parser()
-                .verifyWith(key)
-                .build();
-        System.out.println("jwtParser: "+ jwtParser);
-
-        return jwtParser.parseSignedClaims(token).getPayload();
-    } catch (ExpiredJwtException e) {
-        System.out.println("Error: Token is expired - " + e.getMessage());
-        return null;
-    } catch (MalformedJwtException e) {
-        System.out.println("Error: Malformed token - " + e.getMessage());
-        return null;
-    } catch (SecurityException e) {
-        System.out.println("Error: Invalid signature - " + e.getMessage());
-        return null;
-    } catch (Exception e) {
-        System.out.println("Error parsing JWT: " + e.getMessage());
-        return null;
     }
-}
 
     public String extractUsername(String token) {
         Claims claims = extractClaims(token);

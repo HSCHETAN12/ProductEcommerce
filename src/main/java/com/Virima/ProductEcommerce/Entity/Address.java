@@ -1,6 +1,7 @@
 package com.Virima.ProductEcommerce.Entity;
 
 import com.Virima.ProductEcommerce.Base.TrackingColumn;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,5 +22,6 @@ public class Address extends TrackingColumn {
 
     @OneToOne
     @JoinColumn(name = "user_id")
+    @JsonIgnore
     private Users user;
 }

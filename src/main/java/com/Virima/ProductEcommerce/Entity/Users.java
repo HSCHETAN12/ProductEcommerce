@@ -4,13 +4,12 @@ import com.Virima.ProductEcommerce.Base.TrackingColumn;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
 import java.util.List;
 
-@Data
+@Setter
+@Getter
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @NoArgsConstructor
@@ -40,4 +39,8 @@ public class Users extends TrackingColumn {
     @JoinColumn(name = "role_id", nullable = false)
     @JsonBackReference  // Prevents serialization of the reverse relationship
     private Role role;
+
+    @OneToMany(mappedBy = "user")
+    @ToString.Exclude
+    private List<Address> addresses;
 }

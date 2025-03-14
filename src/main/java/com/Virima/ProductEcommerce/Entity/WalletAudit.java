@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class WalletAudit extends TrackingColumn {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private int id;
     private int userId;  // User ID who made the transaction
     private String transactionType; // DEBIT or CREDIT
     private double amount;  // Amount added or deducted

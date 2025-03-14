@@ -1,6 +1,7 @@
 package com.Virima.ProductEcommerce.Entity;
 
 import com.Virima.ProductEcommerce.Base.TrackingColumn;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class Role extends TrackingColumn {
 
     private String name ;
     @OneToMany(mappedBy = "role")
+    @JsonIgnore
     private Set<Users> users;
 
 }

@@ -1,12 +1,12 @@
 package com.Virima.ProductEcommerce.Entity;
 
 import com.Virima.ProductEcommerce.Base.TrackingColumn;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import lombok.*;
 
-@Data
+@Setter
+@Getter
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @NoArgsConstructor
@@ -19,5 +19,6 @@ public class Wallet extends TrackingColumn{
     @OneToOne
     @JoinColumn(name = "user_id")
     @ToString.Exclude
+    @JsonIgnore
     private Users user;
 }
