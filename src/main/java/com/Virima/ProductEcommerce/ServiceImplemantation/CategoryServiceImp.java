@@ -18,6 +18,17 @@ public class CategoryServiceImp implements CategoryService {
     @Autowired
     CategoryRepo categoryRepo;
 
+    /**
+     * Adds a new category to the database.
+     *
+     * 1. Checks if a category with the same name already exists in the database.
+     * 2. If the category exists, returns a 400 (BAD_REQUEST) response with a message.
+     * 3. If the category doesn't exist, creates a new Category object and saves it.
+     * 4. Returns a 200 (OK) response with a success message.
+     *
+     * @param categoryDto The data transfer object containing category details (e.g., name).
+     * @return A ResponseEntity with a message and HTTP status code.
+     */
     public ResponseEntity<Object> addCategory(CategoryDto categoryDto) {
         Map<String, Object> map = new HashMap<>();
         Category category = categoryRepo.findByName(categoryDto.getName());
@@ -32,6 +43,19 @@ public class CategoryServiceImp implements CategoryService {
             return new ResponseEntity<>(map, HttpStatus.OK);
         }
     }
+
+    /**
+     * Updates an existing category in the database.
+     *
+     * 1. Fetches the category by its ID. If not found, returns a 404 (NOT_FOUND) response.
+     * 2. If the category exists and the name is provided in the DTO, updates the category's name.
+     * 3. Saves the updated category to the database.
+     * 4. Returns a 200 (OK) response with a success message if the update is successful.
+     *
+     * @param id The ID of the category to be updated.
+     * @param categoryDto The data transfer object containing the updated category details (e.g., name).
+     * @return A ResponseEntity with a message and HTTP status code.
+     */
 
     public ResponseEntity<Object> UpdateCategory(int id, CategoryDto categoryDto) {
         Map<String, Object> map = new HashMap<>();

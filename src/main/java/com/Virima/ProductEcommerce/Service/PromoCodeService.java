@@ -1,6 +1,7 @@
 package com.Virima.ProductEcommerce.Service;
 
 import com.Virima.ProductEcommerce.dto.PromoCodeDto;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 
 public interface PromoCodeService {
@@ -11,4 +12,6 @@ public interface PromoCodeService {
     ResponseEntity<Object> fetchPromoCode(String code);
 
     ResponseEntity<Object> fetchAllPromoCode();
+
+    ResponseEntity<Object> applyPromocode(String code, HttpServletRequest request);
 }

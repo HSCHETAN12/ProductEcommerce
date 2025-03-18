@@ -32,7 +32,7 @@ public class Users extends TrackingColumn {
 
     @OneToOne(mappedBy = "user")
     @ToString.Exclude
-    private Wallet wallet; // One-to-One relationship with wallet
+    private Wallet wallet;
 
 
     @ManyToOne

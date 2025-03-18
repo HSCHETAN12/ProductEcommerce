@@ -2,6 +2,7 @@ package com.Virima.ProductEcommerce.Controller;
 
 import com.Virima.ProductEcommerce.Service.WalletService;
 import com.Virima.ProductEcommerce.dto.WalletTopUpDto;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -30,5 +31,11 @@ public class WalletController {
     @PostMapping("/wallett/{userId}")
     public ResponseEntity<Object> DeleteWallet(@PathVariable int userId) {
         return walletService.DeleteWallet(userId);
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    @GetMapping("/walletaudict/{id}")
+    public ResponseEntity<Object> fetchWalletAudict(@PathVariable int id, HttpServletRequest request) {
+        return walletService.fetchWalletAudict(id, request);
     }
 }

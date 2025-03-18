@@ -74,7 +74,7 @@ public class Schelduing {
     @Transactional
     public void updateOrderStatusToDillary() {
         // Fetch all orders with status "paid"
-        List<Orders> paidOrders = orderRepository.findByOrderStatus("paid");
+        List<Orders> paidOrders = orderRepository.findByOrderStatus("dispatched");
 
         // For each paid order, update the status to "dispatched" and create an audit record
         for (Orders order : paidOrders) {
@@ -96,8 +96,4 @@ public class Schelduing {
         }
     }
 
-//    @Scheduled(cron = "0/10 * * * * ?")
-//    public void sayHi() {
-//        System.out.println("Hi");
-//    }
 }

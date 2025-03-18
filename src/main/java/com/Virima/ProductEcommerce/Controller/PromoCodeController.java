@@ -2,6 +2,7 @@ package com.Virima.ProductEcommerce.Controller;
 
 import com.Virima.ProductEcommerce.Service.PromoCodeService;
 import com.Virima.ProductEcommerce.dto.PromoCodeDto;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,5 +44,12 @@ public class PromoCodeController {
 
         return promoCodeService.fetchAllPromoCode();
 
+    }
+
+    @PreAuthorize("hasAuthority('ROLE_USER')")
+    @PostMapping("/promocode/{code}")
+    public ResponseEntity<Object> applyPromocode(@PathVariable String code, HttpServletRequest request)
+    {
+        return promoCodeService.applyPromocode(code,request);
     }
 }

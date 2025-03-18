@@ -36,13 +36,13 @@ public class ProductController {
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping("/products/{id}")
-    public ResponseEntity<Object> fetchByName(@PathVariable int id) {
+    public ResponseEntity<Object> fetchById(@PathVariable int id) {
         return productService.fetchById(id);
     }
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @PatchMapping("/products/{id}")
-    public ResponseEntity<Object> fetchByName(@PathVariable int id,@RequestParam("name") String name,
+    public ResponseEntity<Object> productUpdate(@PathVariable int id,@RequestParam("name") String name,
                                               @RequestParam("price") Double  price,
                                               @RequestParam("stock") Integer stock,
                                               @RequestParam("category") String category, @RequestParam("image") MultipartFile image) {

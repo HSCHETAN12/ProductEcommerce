@@ -20,6 +20,6 @@ public interface AdminService {
      ResponseEntity<Object> WalletTopUp(WalletTopUpDto walletTopUpRequest);
      ResponseEntity<Object> createPromoCode(PromoCodeDto promoCodeDto);
      ResponseEntity<Object> fetchWalletAudict(int id, HttpServletRequest request);
-
-     ResponseEntity<Object> fetchOrders(HttpServletRequest request);
+//
+//     ResponseEntity<Object> fetchOrders(HttpServletRequest request);
 }

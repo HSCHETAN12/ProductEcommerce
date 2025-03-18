@@ -1,18 +1,13 @@
 package com.Virima.ProductEcommerce.Controller;
 
 
-import com.Virima.ProductEcommerce.Entity.Products;
-import com.Virima.ProductEcommerce.Entity.PromoCodeStatus;
-import com.Virima.ProductEcommerce.Entity.PromoCodeType;
+
 import com.Virima.ProductEcommerce.Service.AdminService;
-import com.Virima.ProductEcommerce.ServiceImplemantation.AdminServiceImp;
-import com.Virima.ProductEcommerce.dto.*;
-import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+
 
 
 @RestController
@@ -28,11 +23,7 @@ public class AdminController {
 //        return adminServiceImp.verify(user);
 //    }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    @GetMapping("/{id}")
-    public ResponseEntity<Object> fetchUser(@PathVariable int id) {
-        return adminServiceImp.fetchUsers(id);
-    }
+
 
 //    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
 //    @PostMapping("/category")
@@ -69,11 +60,6 @@ public class AdminController {
 //        return adminServiceImp.fetchByName(name);
 //    }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    @GetMapping("/users")
-    public ResponseEntity<Object> fetchUser() {
-        return adminServiceImp.fetchUser();
-    }
 
 //    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
 //    @PostMapping("/wallettopup")
@@ -88,16 +74,12 @@ public class AdminController {
 //        return adminServiceImp.createPromoCode(promoCodeDto);
 //
 //    }
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    @GetMapping("/walletaudict/{id}")
-    public ResponseEntity<Object> fetchWalletAudict(@PathVariable int id, HttpServletRequest request) {
-        return adminServiceImp.fetchWalletAudict(id, request);
-    }
 
-    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    @GetMapping("/orders")
-    public ResponseEntity<Object> fetchOrders(HttpServletRequest request) {
-        return adminServiceImp.fetchOrders(request);
-    }
+
+//    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+//    @GetMapping("/orders")
+//    public ResponseEntity<Object> fetchOrders(HttpServletRequest request) {
+//        return adminServiceImp.fetchOrders(request);
+//    }
 
 }

@@ -20,7 +20,7 @@ public class Address extends TrackingColumn {
     private String country;
     private String postalCode;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "user_id")
     @JsonIgnore
     private Users user;

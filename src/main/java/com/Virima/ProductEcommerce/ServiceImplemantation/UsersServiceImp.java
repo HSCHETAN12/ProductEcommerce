@@ -82,6 +82,19 @@ public class UsersServiceImp implements UsersService {
 
     BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder(12);
 
+    /**
+     * Registers a new user by validating the input and saving the user to the database.
+     *
+     * 1. Validates the provided user fields (email, mobile, username) for any existing entries.
+     * 2. If validation errors exist, returns a response with the error details.
+     * 3. If no errors, proceeds with saving the new user.
+     * 4. Returns a 200 (OK) response with a success message after the user is saved.
+     *
+     * @param user The user signup details.
+     * @param bindingResult Contains any validation errors for the user fields.
+     * @return A ResponseEntity with a success message or validation error details and an appropriate HTTP status code.
+     */
+
     public ResponseEntity<Object> save(@Valid UsersSignupDto user, BindingResult bindingResult) {
         // Check for existing email, mobile, and username
         helperMethods.validateUserFields(user, bindingResult);
@@ -150,17 +163,6 @@ public class UsersServiceImp implements UsersService {
         }
     }
 
-//    public ResponseEntity<Object> fetch(int id) {
-//        Optional<Users> users = usersRepo.findById(id);
-//        Map<String, Object> map1 = new HashMap<>();
-//        if (users == null) {
-//            map1.put("message", "No user present in the database");
-//            return new ResponseEntity<>(map1, HttpStatus.NOT_FOUND);
-//        } else {
-//            map1.put("data", users);
-//            return new ResponseEntity<>(map1, HttpStatus.OK);
-//        }
-//    }
 
     /**
      * This method verifies the OTP provided by the user and updates their verification status.
@@ -194,511 +196,39 @@ public class UsersServiceImp implements UsersService {
         }
     }
 
-
-    public ResponseEntity<Object> addProductsToCart(HttpServletRequest request, List<CartRequest> cart) throws ProductException {
-        Map<String, Object> map = new HashMap<>();
-        Users user = helperMethods.role(request);
-        System.out.println("---------------------------------------");
-        System.out.println(user);
-        Cart cart1 = cartRepo.findByUserIdAndStatus(user.getId(), "active");
-        if (cart1 == null) {
-            cart1 = new Cart(user.getId());
-            cart1 = cartRepo.save(cart1);
-        }
-
-        if (cart1.getCartItems() == null) {
-            cart1.setCartItems(new ArrayList<>());
-        }
-
-
-        // Process each product in the request
-        for (CartRequest productRequest : cart) {
-            // Validate if the product exists and check stock availability
-            Products product;
-            try {
-                product = productRepo.findById(productRequest.getProductId()).get();
-            } catch (RuntimeException e) {
-                throw new ProductException("No product found");
-            }
-            System.out.println(product);
-            if (product == null) {
-                map.put("messsage", "Product not found");
-                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-            }
-            if (product.getStatus().equals("Not Avaliable")) {
-                map.put("message", "Product Not Avaiable");
-                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-            }
-            if (product.getStock() < productRequest.getQuantity()) {
-                map.put("message", "Insufficient stock");
-                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-            }
-
-            // Check if the product is already in the cart
-            CartItem cartItem = cartItemRepo.findByCartIdAndProductId(cart1.getId(), productRequest.getProductId());
-            if (cartItem == null) {
-                // If not in the cart, add it
-                cartItem = new CartItem(productRequest.getProductId(), productRequest.getQuantity());
-                cartItem.setCart(cart1);
-                cartItemRepo.save(cartItem);
-
-                cart1.getCartItems().add(cartItem);
-            } else {
-                // If already in the cart, update the quantity
-                cartItem.setQuantity(cartItem.getQuantity() + productRequest.getQuantity());
-                cartItemRepo.save(cartItem);
-            }
-            int stock = product.getStock() - cartItem.getQuantity();
-            if (stock <= 0) {
-                product.setStatus(NOT_AVAILABLE);
-                product.setStock(0);
-                productRepo.save(product);
-            } else {
-                product.setStock(stock);
-                productRepo.save(product);
-            }
-//            helperMethods.updateCartTotalAmount(cart1);
-//            cart.updateTotalAmount(product);
-//            cartRepository.save(cart);
-        }
-
-        // Update the total amount of the cart
-        helperMethods.updateCartTotalAmount(cart1);
-        System.out.println(cart1.getTotalAmount());
-        cartRepo.save(cart1);
-        map.put("message", "Item added to the cart");
-        return new ResponseEntity<>(map, HttpStatus.OK);
-    }
-
-    @Transactional
-    public ResponseEntity<Object> applyPromocode(String code, HttpServletRequest request) {
-        Map<String, Object> map = new HashMap<>();
-        Users user = helperMethods.role(request);
-        if (user == null) {
-            map.put("message", "User Not Login");
-            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-        } else {
-            Optional<PromoCode> promoCode = promocodeRepo.findByCodeAndStatus(code, PromoCodeStatus.ACTIVE);
-            if (!promoCode.isPresent()) {
-                map.put("message", "No promo code is present or inactive");
-                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-            }
-
-//            PromoCode promoCode = optionalPromoCode.get();
-//
-//            if (!promoCode.isValid()) {
-//                map.put("message", "Promocode is inactive");
-//                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-//            }
-
-            Cart cart = cartRepo.findByUserIdAndStatus(user.getId(), "active");
-            if (cart == null) {
-                map.put("message", "No cart found for the user " + user.getUsername());
-                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-            } else {
-                double totalDiscount = 0.0;
-
-                if (promoCode.get().getType() == PromoCodeType.ORDER_BASED) {
-                    // Apply the discount to the total amount of the cart
-                    totalDiscount = promoCode.get().getDiscountValue();
-
-                } else if (promoCode.get().getType() == PromoCodeType.PRODUCT_BASED) {
-                    System.err.println("------------------------------------");
-                    for (CartItem item : cart.getCartItems()) {
-                        Optional<Products> productOpt = productRepo.findById(item.getProductId());
-                        if (productOpt.isPresent()) {
-                            Products product = productOpt.get();
-                            if (product.getName().equals(promoCode.get().getProductName())) {
-                                double discount = item.getQuantity() * product.getPrice() * promoCode.get().getDiscountValue() / 100;
-                                totalDiscount += discount;
-                                System.out.println(totalDiscount);
-                            }
-                        }
-                    }
-                }
-
-                // Apply total discount to the cart
-                cart.setTotalAmount(cart.getTotalAmount() - totalDiscount);
-                PromoCode promoCode1 = promocodeRepo.findByCode(code);
-                cart.setPromoCode(promoCode1);
-                cartRepo.save(cart);
-
-                map.put("message", "Promocode is applied successfully");
-                return new ResponseEntity<>(map, HttpStatus.OK);
-            }
-        }
-    }
-
-//    @Transactional
-//    public ResponseEntity<Object> checkouts(HttpServletRequest request) throws ProductException {
-//        Map<String, Object> map = new HashMap<>();
-//        Users user = helperMethods.role(request);
-//        Cart cart = cartRepo.findByUserIdAndStatus(user.getId(), "active");
-//        Optional<PromoCode> promoCode = promocodeRepo.findById(cart.getPromoCode().getId());
-//        if (cart == null) {
-//            map.put("message", "No active cart found for the curent user");
-//            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-//        }
-//
-//        // Check if the user has an address
-//        if (user.getAddresses() == null || user.getAddresses().isEmpty()) {
-//            map.put("message", "Please add an address before proceeding with checkout");
-//            return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
-//        }
-//
-//        Wallet wallet = walletRepo.findByUserId(user.getId());
-//        if (wallet == null) {
-//            map.put("message", "No active wallet found for the current user");
-//            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-//        }
-//
-//
-//        double finalAmount = cart.getTotalAmount();
-//        // Check if the wallet has sufficient balance
-//        if (wallet.getBalance() < cart.getTotalAmount()) {
-//            Orders order = checkOutMethods.createOrder(user.getId(), cart, cart.getTotalAmount());
-//            order.setOrderStatus("Failed");
-//            orderRepository.save(order);
-//            // Insufficient funds, log failed transaction and inform user
-//            checkOutMethods.logFailedTransaction(user.getId(), cart.getTotalAmount(), order.getId());
-//            map.put("message", "No sufficient balance in the Wallet");
-//
-//            return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
-//        } else {
-//
-//            // Proceed with payment (deduct wallet balance)
-//            double previousBalance = wallet.getBalance();
-//            wallet.setBalance(wallet.getBalance() - cart.getTotalAmount());
-//            walletRepo.save(wallet);
-//
-//            // Log wallet audit for the deduction
-//            checkOutMethods.logWalletAudit(user.getId(), cart.getTotalAmount(), wallet.getBalance(), "payment");
-//
-//            // Create the order
-//            Orders order = checkOutMethods.createOrder(user.getId(), cart, cart.getTotalAmount());
-//            order.setOrderStatus("Paid");
-//            orderRepository.save(order);
-//
-//            for (CartItem cartItem : cart.getCartItems()) {
-//                OrderedItems orderedItem = new OrderedItems();
-//                Optional<Products> products = productRepo.findById(cartItem.getProductId());
-//                orderedItem.setQuantity(cartItem.getQuantity());
-//                orderedItem.setName(products.get().getName());
-//                Products products1 = productRepo.findById(cartItem.getProductId()).get();
-//                if (products1.getName().equals(promoCode.get().getProductName())) {
-//                    double discount = cartItem.getQuantity() * products1.getPrice() * promoCode.get().getDiscountValue() / 100;
-//                    orderedItem.setDiscount(discount);
-//                } else {
-//                    orderedItem.setDiscount(0);
-//                }
-//                orderedItem.setPrice(products.get().getPrice() * cartItem.getQuantity());
-//                orderedItem.setTotalAmount(orderedItem.getPrice() - orderedItem.getDiscount());
-//                orderedItem.setTotalAmount(orderedItem.getTotalAmount() + orderedItem.getPrice());
-//                orderedItem.setProduct(products.get());
-//                orderedItem.setOrder(order); // Link the ordered item to the order
-//
-//                // Save the ordered item
-//                orderedItemsRepo.save(orderedItem);
-//            }
-//
-//            // Log order audit for the status change (from "Pending" to "Paid")
-//            checkOutMethods.logOrderAudit(order.getId(), "PENDING", "PAID");
-//
-//            // Log a successful transaction and associate it with the order
-//            try {
-//                checkOutMethods.logSuccessfulTransaction(user.getId(), cart.getTotalAmount(), order.getId());
-//            } catch (ProductException e) {
-//                map.put("message", "order Not found");
-//                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-//            }
-//            cart.setStatus("Completed");
-//            cartRepo.save(cart);
-//            map.put("message", "Order successfully");
-//            return new ResponseEntity<>(map, HttpStatus.OK);
-//        }
-//
-//
-//    }
-
-    @Transactional
-    public ResponseEntity<Object> checkouts(HttpServletRequest request) throws ProductException {
-        Map<String, Object> map = new HashMap<>();
-        Users user = helperMethods.role(request);
-        Cart cart = cartRepo.findByUserIdAndStatus(user.getId(), "active");
-
-        // Check if cart is found
-        if (cart == null) {
-            map.put("message", "No active cart found for the current user");
-            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-        }
-
-        // Fetch the promo code if present
-        Optional<PromoCode> promoCode = (cart.getPromoCode() != null) ? promocodeRepo.findById(cart.getPromoCode().getId()) : Optional.empty();
-
-        // Check if the user has an address
-        if (user.getAddresses() == null || user.getAddresses().isEmpty()) {
-            map.put("message", "Please add an address before proceeding with checkout");
-            return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
-        }
-
-        Wallet wallet = walletRepo.findByUserId(user.getId());
-        if (wallet == null) {
-            map.put("message", "No active wallet found for the current user");
-            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-        }
-
-        double finalAmount = cart.getTotalAmount();
-
-        // If a promo code is applied, apply the discount
-//        if (promoCode.isPresent()) {
-//            // Apply the promo code discount if it exists
-//            finalAmount = applyPromoCodeDiscount(cart, promoCode.get());
-//        }
-
-        // Check if the wallet has sufficient balance
-        if (wallet.getBalance() < finalAmount) {
-            Orders order = checkOutMethods.createOrder(user.getId(), cart, finalAmount);
-            order.setOrderStatus("Failed");
-            orderRepository.save(order);
-            checkOutMethods.logFailedTransaction(user.getId(), cart.getTotalAmount(), order.getId());
-            map.put("message", "Insufficient balance in the wallet");
-            return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
-        } else {
-            // Proceed with payment (deduct wallet balance)
-            wallet.setBalance(wallet.getBalance() - finalAmount);
-            walletRepo.save(wallet);
-
-            // Log wallet audit for the deduction
-            checkOutMethods.logWalletAudit(user.getId(), finalAmount, wallet.getBalance(), "payment");
-
-            // Create the order
-            Orders order = checkOutMethods.createOrder(user.getId(), cart, finalAmount);
-            order.setOrderStatus("Paid");
-            orderRepository.save(order);
-
-            // Process ordered items
-            for (CartItem cartItem : cart.getCartItems()) {
-                OrderedItems orderedItem = new OrderedItems();
-                Optional<Products> products = productRepo.findById(cartItem.getProductId());
-                orderedItem.setQuantity(cartItem.getQuantity());
-                orderedItem.setName(products.get().getName());
-                Products product = products.get();
-
-                // If a promo code exists, apply the discount to the ordered items
-                if (promoCode.isPresent() && product.getName().equals(promoCode.get().getProductName())) {
-                    double discount = cartItem.getQuantity() * product.getPrice() * promoCode.get().getDiscountValue() / 100;
-                    orderedItem.setDiscount(discount);
-                } else {
-                    orderedItem.setDiscount(0);
-                }
-                orderedItem.setPrice(product.getPrice() * cartItem.getQuantity());
-                orderedItem.setTotalAmount(orderedItem.getPrice() - orderedItem.getDiscount());
-                orderedItem.setProduct(product);
-                orderedItem.setOrder(order); // Link the ordered item to the order
-
-                // Save the ordered item
-                orderedItemsRepo.save(orderedItem);
-            }
-
-            // Log order audit for status change (from "Pending" to "Paid")
-            checkOutMethods.logOrderAudit(order.getId(), "PENDING", "PAID");
-
-            // Log a successful transaction and associate it with the order
-            try {
-                checkOutMethods.logSuccessfulTransaction(user.getId(), cart.getTotalAmount(), order.getId());
-            } catch (ProductException e) {
-                map.put("message", "Order not found");
-                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-            }
-
-            // Set the cart status to "Completed" and save
-            cart.setStatus("Completed");
-            cartRepo.save(cart);
-
-            map.put("message", "Order placed successfully");
-            return new ResponseEntity<>(map, HttpStatus.OK);
-        }
-    }
-
-//    // Method to apply discount if promo code exists
-//    private double applyPromoCodeDiscount(Cart cart, PromoCode promoCode) {
-//        double discountAmount = 0.0;
-//        if (promoCode != null && promoCode.getDiscountValue() > 0) {
-//            discountAmount = cart.getTotalAmount() * promoCode.getDiscountValue() / 100;
-//        }
-//        return cart.getTotalAmount() - discountAmount;
-//    }
+    /**
+     * Adds products to a user's active cart, validating stock availability and updating the cart's total amount.
+     *
+     * 1. Retrieves or creates an active cart for the user.
+     * 2. For each product in the cart request:
+     *    - Validates if the product exists, is available, and has enough stock.
+     *    - If the product is not already in the cart, creates a new cart item and adds it.
+     *    - If the product is already in the cart, updates the quantity.
+     * 3. Updates the stock of the product based on the cart's quantity and marks it as unavailable if stock runs out.
+     * 4. Updates the cart’s total amount and saves the cart.
+     * 5. Returns a 200 (OK) response with a success message if the products are successfully added to the cart.
+     *    - If any error occurs (e.g., product not found, insufficient stock), returns a corresponding error message.
+     *
+     * @param request The HTTP request containing user info.
+     * @param cart A list of CartRequest objects containing product IDs and quantities.
+     * @return A ResponseEntity with a success or error message and an appropriate HTTP status code.
+     * @throws ProductException If there is an issue with product retrieval or validation.
+     */
 
 
-    @Transactional
-    public ResponseEntity<Object> cancleorders(int orderId, HttpServletRequest request) {
-        Map<String, Object> map = new HashMap<>();
-        try {
-            Users user = helperMethods.role(request);
-            if (user.getRole().getName().equals("USER")) {
-                Orders order = orderRepository.findById(orderId).orElse(null);
-                if (order == null) {
-                    map.put("message", "Order not found");
-                    return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-                }
-
-                // Check if the order belongs to the logged-in user
-                if (order.getUserId() != user.getId()) {
-                    map.put("message", "This order does not belong to the logged-in user");
-                    return new ResponseEntity<>(map, HttpStatus.UNAUTHORIZED);
-                }
-
-                // Check if the order is already completed
-                if (order.getOrderStatus().equalsIgnoreCase("completed")) {
-                    map.put("message", "Order delivery completed. You cannot cancel it");
-                    return new ResponseEntity<>(map, HttpStatus.OK);
-                }
-
-                // Ensure promo code orders cannot be canceled
-                if (order.getPromoCode() != null) {
-                    map.put("message", "Promo code applied orders cannot be canceled");
-                    return new ResponseEntity<>(map, HttpStatus.OK);
-                }
-
-                // Update the user's wallet balance
-                Wallet wallet = walletRepo.findByUserId(user.getId());
-                wallet.setBalance(wallet.getBalance() + order.getTotalPrice());
-                walletRepo.save(wallet);
-                // Create a wallet audit record
-                WalletAudit walletAudit = new WalletAudit();
-                walletAudit.setBalanceAfterTransaction(wallet.getBalance());
-                walletAudit.setAmount(order.getTotalPrice());
-                walletAudit.setTransactionType("Refound");
-                walletAudit.setUserId(wallet.getUser().getId());
-                walletAuditRepo.save(walletAudit);
-
-                // Change order status to "Cancelled"
-                order.setOrderStatus("Cancelled");
-
-//                // Update the order status in the order status table
-//                OrderStatus orderStatus = orderStatusRepo.findByOrder(order);
-//                orderStatus.setStatus("Cancelled");
-
-                // Create a new order audit record
-                List<OrderAudit> orderedAuditList = orderAudictRepository.findAllByOrderId(order.getId());
-                OrderAudit lastOrderedAudit = orderedAuditList.get(orderedAuditList.size() - 1);
-
-                OrderAudit orderedAudit = new OrderAudit();
-                orderedAudit.setNewStatus("Cancelled");
-                orderedAudit.setPreviousStatus(lastOrderedAudit.getNewStatus());
-                orderedAudit.setOrderId(order.getId());
-
-                // Restore the stock of the products
-                List<OrderedItems> orderedItemsList = orderedItemsRepo.findAllByOrder(order);
-                for (OrderedItems orderedItem : orderedItemsList) {
-                    int productId = orderedItem.getProduct().getId();
-                    Products product = productRepo.findById(productId).orElse(null);
-                    if (product != null) {
-                        product.setStock(product.getStock() + orderedItem.getQuantity());
-                        product.setStatus(AVAILABLE);
-                        productRepo.save(product);
-                    }
-                }
-
-                Transaction transaction = new Transaction();
-                transaction.setUserId(user.getId());
-                transaction.setAmount(order.getTotalPrice());
-                transaction.setStatus("Cancelled");
-                transaction.setOrder(order);
-                transaction.setTimestamp(LocalDateTime.now());
-                transactionRepository.save(transaction);
-
-                // Save all the updated records (order, order status, audits)
-                orderAudictRepository.save(orderedAudit);
-//                orderStatusRepo.save(orderStatus);
-                orderRepository.save(order);
-
-                return new ResponseEntity<>("Order cancelled successfully", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public ResponseEntity<Object> address(AddressDto addressRequest, HttpServletRequest request) {
-        Map<String, Object> map = new HashMap<>();
-        try {
-            Users user = helperMethods.role(request);
-            System.out.println("-------------------------------");
-            System.out.println(user.getRole().getName());
-            if (user.getRole().getName().equals("USER")) {
-                Address address = new Address();
-                address.setStreet(addressRequest.getStreet());
-                address.setCity(addressRequest.getCity());
-                address.setState(addressRequest.getState());
-                address.setCountry(addressRequest.getCountry());
-                address.setPostalCode(addressRequest.getPostalCode());
-                address.setUser(user); // Associate address with user
-                addressRepo.save(address);
-                map.put("message", "Address added successfull");
-                map.put("data", addressRequest);
-                return new ResponseEntity<>(map, HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public ResponseEntity<Object> updateaddress(AddressDto address, HttpServletRequest request) {
-        Map<String, Object> map = new HashMap<>();
-        try {
-            // Fetch the logged-in user using the helper method
-            Users user = helperMethods.role(request);
-
-            // Ensure the user has the "USER" role
-            if (!user.getRole().getName().equals("USER")) {
-                return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-            }
-
-            // Fetch the user's current address (assuming user.getAddress() gets the address object)
-            Address existingAddress = (Address) user.getAddresses();
-
-            // If the user doesn't have an address, return a 404 not found response
-            if (existingAddress == null) {
-                map.put("message", "Address not found");
-                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-            }
-
-            // Update the fields of the address (only if they are provided)
-            if (address.getStreet() != null) {
-                existingAddress.setStreet(address.getStreet());
-            }
-            if (address.getCity() != null) {
-                existingAddress.setCity(address.getCity());
-            }
-            if (address.getState() != null) {
-                existingAddress.setState(address.getState());
-            }
-            if (address.getCountry() != null) {
-                existingAddress.setCountry(address.getCountry());
-            }
-            if (address.getPostalCode() != null) {
-                existingAddress.setPostalCode(address.getPostalCode());
-            }
-
-            // Save the updated address
-            addressRepo.save(existingAddress);
-
-            // Prepare the response message
-            map.put("message", "Address updated successfully");
-            map.put("data", existingAddress);
-            return new ResponseEntity<>(map, HttpStatus.OK);
-
-        } catch (Exception e) {
-            map.put("message", "An error occurred while updating the address");
-            return new ResponseEntity<>(map, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
+    /**
+     * Fetches all orders placed by the logged-in user.
+     *
+     * This method performs the following:
+     * 1. Retrieves the logged-in user using the helper method.
+     * 2. Queries the order repository to fetch all orders associated with the user's ID.
+     * 3. If no orders are found, it returns a message stating "No orders" with an HTTP 200 OK response.
+     * 4. If orders are found, it converts each order into an `OrdersDto` object, including details like order ID, user ID, total price, order status, cart ID, and promo code ID.
+     * 5. The list of `OrdersDto` objects is returned in the response with an HTTP 200 OK status.
+     *
+     * @param request The HTTP request containing user authentication details.
+     * @return A `ResponseEntity` containing the list of orders (if available) in the form of `OrdersDto` and the corresponding HTTP status.
+     */
     public ResponseEntity<Object> fetchuserorders(HttpServletRequest request) {
         Map<String, Object> map = new HashMap<>();
         Users user = helperMethods.role(request);
@@ -729,6 +259,61 @@ public class UsersServiceImp implements UsersService {
 
             // Add the list of OrdersDto to the response map
             map.put("data", ordersDtoList);
+            return new ResponseEntity<>(map, HttpStatus.OK);
+        }
+    }
+
+    public ResponseEntity<Object> fetchUser() {
+        Map<String, Object> map = new HashMap<>();
+        List<Users> users = usersRepo.findVerifiedAndNotDeleted();
+
+        if (users.isEmpty()) {
+            map.put("message", "No verified users exist in the database");
+            return new ResponseEntity<>(map, HttpStatus.OK);
+        } else {
+
+            List<UsersSignupDto> userDetails = new ArrayList<>();
+
+            for (Users user : users) {
+                // Creating a UserDTO for each user
+                UsersSignupDto userDTO = new UsersSignupDto(
+                        user.getId(),
+                        user.getFirstname(),
+                        user.getLastname(),
+                        user.getUsername(),
+                        user.getEmail(),
+                        user.getPassword(),
+                        user.getWallet().getBalance(),
+                        user.getMobile(),
+                        user.getGender()
+                );
+
+                userDetails.add(userDTO);
+            }
+
+            map.put("data", userDetails); // Adding the user details to the response
+            return new ResponseEntity<>(map, HttpStatus.OK);
+        }
+    }
+
+    public ResponseEntity<Object> fetchUsers(int id) {
+        Optional<Users> user = usersRepo.findById(id);
+        Map<String, Object> map = new HashMap<>();
+        if (user == null) {
+            map.put("message", "No user present in the database");
+            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
+        } else {
+            UsersSignupDto userDTO = new UsersSignupDto(
+                    user.get().getId(),
+                    user.get().getFirstname(),
+                    user.get().getLastname(),
+                    user.get().getUsername(),
+                    user.get().getEmail(),
+                    user.get().getPassword(),
+                    user.get().getWallet().getBalance(),
+                    user.get().getMobile(),
+                    user.get().getGender());
+            map.put("data", userDTO);
             return new ResponseEntity<>(map, HttpStatus.OK);
         }
     }

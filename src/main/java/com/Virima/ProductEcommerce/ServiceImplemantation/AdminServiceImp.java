@@ -263,16 +263,16 @@ public class AdminServiceImp implements AdminService {
         }
     }
 
-    public ResponseEntity<Object> fetchOrders(HttpServletRequest request) {
-        Map<String, Object> map = new HashMap<>();
-        List<Orders> orders=orderRepository.findByOrderStatus("completed");
-        if(orders.isEmpty())
-        {
-         map.put("message","No orders are completed");
-         return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-        }
-        map.put("data",orders);
-        return new ResponseEntity<>(map,HttpStatus.OK);
-    }
+//    public ResponseEntity<Object> fetchOrders(HttpServletRequest request) {
+//        Map<String, Object> map = new HashMap<>();
+//        List<Orders> orders=orderRepository.findByOrderStatus("completed");
+//        if(orders.isEmpty())
+//        {
+//         map.put("message","No orders are completed");
+//         return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
+//        }
+//        map.put("data",orders);
+//        return new ResponseEntity<>(map,HttpStatus.OK);
+//    }
 }
 

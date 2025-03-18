@@ -1,6 +1,7 @@
 package com.Virima.ProductEcommerce.Entity;
 
 import com.Virima.ProductEcommerce.Base.TrackingColumn;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +20,7 @@ public class CartItem extends TrackingColumn {
 
     @ManyToOne
     @JoinColumn(name = "cart_id")
+    @JsonIgnore
     private Cart cart;
 
 

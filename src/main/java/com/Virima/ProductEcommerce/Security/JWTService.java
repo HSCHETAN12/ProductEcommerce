@@ -35,16 +35,8 @@ public class JWTService {
         Key key = Keys.hmacShaKeyFor(secretKey.getBytes());
         String role1 = "ROLE_" + role;
         claims.put("role", role1); // Add the role as a claim
-//
-//        return Jwts.builder()
-//                .setClaims(claims)
-//                .setSubject(username)
-//                .setIssuedAt(new Date(System.currentTimeMillis()))
-//                .setExpiration(new Date(System.currentTimeMillis() + 60 * 60 * 1000 * 10)) // Set expiration time
-//                .signWith(getKey())
-//                .compact();
 
-        Instant now = Instant.now(); // Current timeInstant expiry = now.plusSeconds(3600);
+        Instant now = Instant.now();
         Instant expiry = now.plusSeconds(3600);
         JwtBuilder jwtBuilder = Jwts.builder()
                 .subject(username)

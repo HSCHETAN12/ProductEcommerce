@@ -71,7 +71,7 @@ public class HelperMethods {
         String hashedPassword = hashPassword(user.getPassword());
         user.setPassword(hashedPassword);
 
-        Optional<Role> role=roleRepo.findById(2);
+        Optional<Role> role = roleRepo.findById(2);
         // Generate OTP
         int otp = generateOtp();
         System.err.print(otp);
@@ -129,8 +129,7 @@ public class HelperMethods {
         cart.updateTotalAmount(totalAmount);  // Update total amount using the method in Cart entity
     }
 
-    public Users role(HttpServletRequest request)
-    {
+    public Users role(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
@@ -142,7 +141,7 @@ public class HelperMethods {
             username = jwtService.extractUsername(token);
             System.out.println(username);
         }
-       Users user=userRepository.findByusername(username);
+        Users user = userRepository.findByusername(username);
         System.out.println(user.getUsername());
         return user;
 //        String role = jwtService.extractRole(token);
