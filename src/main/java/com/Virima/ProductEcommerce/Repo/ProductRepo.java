@@ -1,5 +1,6 @@
 package com.Virima.ProductEcommerce.Repo;
 
+import com.Virima.ProductEcommerce.Entity.Category;
 import com.Virima.ProductEcommerce.Entity.Products;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -16,4 +17,6 @@ public interface ProductRepo extends JpaRepository<Products,Integer> {
     Products findByNameAndIsDeletedFalseAndStockGreaterThan(String name, int stock);
 
     Optional<Products> findByIdAndIsDeletedFalse(int id);
+
+    List<Products> findByCategoryAndIsDeletedFalse(Category categoryOpt);
 }

@@ -5,6 +5,7 @@ import com.Virima.ProductEcommerce.Entity.Users;
 import com.Virima.ProductEcommerce.Exception.ProductException;
 import com.Virima.ProductEcommerce.Helper.HelperMethods;
 import com.Virima.ProductEcommerce.Repo.AddressRepo;
+//import com.Virima.ProductEcommerce.Service.AddressService;
 import com.Virima.ProductEcommerce.Service.AddressService;
 import com.Virima.ProductEcommerce.dto.AddressDto;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AddressServiceImp implements AddressService {
@@ -24,7 +26,7 @@ public class AddressServiceImp implements AddressService {
     HelperMethods helperMethods;
 
     @Autowired
-    AddressRepo addressRepo;
+   AddressRepo addressRepo;
     /**
      * Adds a new address for the logged-in user if the user has the "USER" role.
      *
@@ -82,19 +84,19 @@ public class AddressServiceImp implements AddressService {
      * @return A `ResponseEntity` containing the result of the address update operation and the corresponding HTTP status.
      */
 
-    public ResponseEntity<Object> updateaddress(AddressDto address, HttpServletRequest request) {
+    public ResponseEntity<Object> updateaddress(Long id,AddressDto address, HttpServletRequest request) {
         Map<String, Object> map = new HashMap<>();
         try {
 
             Users user = helperMethods.role(request);
-
+            System.out.println(user.getAddresses());
             if (!user.getRole().getName().equals("USER")) {
                 return new ResponseEntity<>(HttpStatus.FORBIDDEN);
             }
 
             // Fetch the user's current address (assuming user.getAddress() gets the address object)
-            Address existingAddress = (Address) user.getAddresses();
-
+            Address existingAddress = addressRepo.findById(id).get();
+            System.out.println(existingAddress);
             // If the user doesn't have an address, return a 404 not found response
             if (existingAddress == null) {
 //                map.put("message", "Address not found");
@@ -134,24 +136,39 @@ public class AddressServiceImp implements AddressService {
     }
 
     public ResponseEntity<Object> fetchAddress(HttpServletRequest request) {
-        Map<String, Object> map = new HashMap<>();
+        Map<String, Object> responseMap = new HashMap<>();
         try {
             Users user = helperMethods.role(request);
-            List<Address> address=addressRepo.findByUserId(user.getId());
-            if (address == null || address.isEmpty()) {
-//                map.put("message", "No address present. Please add an address.");
-//                return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
-                throw new ProductException( "No address present. Please add an address.");
-            } else {
-                map.put("data", address);
-                return new ResponseEntity<>(map, HttpStatus.OK);
+            List<Address> addressList = addressRepo.findByUserId(user.getId());
+
+            if (addressList == null || addressList.isEmpty()) {
+                throw new ProductException("No address present. Please add an address.");
             }
+
+            // Convert Address entity list to AddressDto list
+            List<AddressDto> addressDtoList = addressList.stream().map(address -> {
+                AddressDto dto = new AddressDto();
+                dto.setStreet(address.getStreet());
+                dto.setCity(address.getCity());
+                dto.setId(address.getId());
+                dto.setState(address.getState());
+                dto.setCountry(address.getCountry());
+                dto.setPostalCode(address.getPostalCode());
+                return dto;
+            }).collect(Collectors.toList());
+
+            responseMap.put("data", addressDtoList);
+            return new ResponseEntity<>(responseMap, HttpStatus.OK);
+        } catch (ProductException e) {
+            responseMap.put("error", e.getMessage());
+            return new ResponseEntity<>(responseMap, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            responseMap.put("error", "An unexpected error occurred.");
+            return new ResponseEntity<>(responseMap, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    public ResponseEntity<Object> deleteAddress(int addressId,HttpServletRequest request) {
+    public ResponseEntity<Object> deleteAddress(Long addressId,HttpServletRequest request) {
         Map<String, Object> map = new HashMap<>();
         try {
             // Get the current user from the request

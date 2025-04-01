@@ -7,4 +7,8 @@ public interface CategoryService {
     ResponseEntity<Object> addCategory(CategoryDto categoryDto);
 
     ResponseEntity<Object> UpdateCategory(int id,CategoryDto categoryDto);
+
+    ResponseEntity<Object> fetchCategory();
+
+    ResponseEntity<Object> getProductsByCategory(String categoryName);
 }

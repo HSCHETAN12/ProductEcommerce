@@ -9,7 +9,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
-@Controller
+@RestController
 public class AddressController {
 
     @Autowired
@@ -21,12 +21,14 @@ public class AddressController {
     {
         return addressService.address(address,request);
     }
+
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    @PatchMapping("/updateaddress")
-    public ResponseEntity<Object> updateaddress(@RequestBody AddressDto address, HttpServletRequest request)
+    @PatchMapping("/updateaddress/{id}")
+    public ResponseEntity<Object> updateaddress(@PathVariable Long id,@RequestBody AddressDto address, HttpServletRequest request)
     {
-        return addressService.updateaddress(address,request);
+        return addressService.updateaddress(id,address,request);
     }
+
     @PreAuthorize("hasAuthority('ROLE_USER')")
     @GetMapping("/fetchaddress")
     public ResponseEntity<Object> fetchAddress(HttpServletRequest request)
@@ -36,10 +38,9 @@ public class AddressController {
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
     @DeleteMapping("/fetchaddress")
-    public ResponseEntity<Object> deleteAddress(@RequestParam int addressId, HttpServletRequest request)
+    public ResponseEntity<Object> deleteAddress(@RequestParam Long addressId, HttpServletRequest request)
     {
         return addressService.deleteAddress(addressId,request);
     }
-
 
 }

@@ -6,17 +6,18 @@ import com.Virima.ProductEcommerce.Helper.CloudinaryHelper;
 import com.Virima.ProductEcommerce.Repo.CategoryRepo;
 import com.Virima.ProductEcommerce.Repo.ProductRepo;
 import com.Virima.ProductEcommerce.Service.ProductService;
+import com.Virima.ProductEcommerce.dto.ProductDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.Virima.ProductEcommerce.Entity.ProductStatus.AVAILABLE;
 import static com.Virima.ProductEcommerce.Entity.ProductStatus.NOT_AVAILABLE;
@@ -87,16 +88,31 @@ public class ProductServiceImp implements ProductService {
      */
 
     public ResponseEntity<Object> fetchProducts() {
-        Map<String, Object> map = new HashMap<>();
-        List<Products> productList = productRepo.findByIsDeletedFalseAndStockGreaterThan(0);
-        if (productList.isEmpty()) {
-            map.put("message", "No product present or out of stock");
-            return new ResponseEntity<>(map, HttpStatus.OK);
-        } else {
-            map.put("data", productList);
-            map.put("message", "Product List");
-            return new ResponseEntity<>(map, HttpStatus.OK);
+        Map<String, Object> responseMap = new HashMap<>();
+
+        List<ProductDto> productDtoList = productRepo.findByIsDeletedFalseAndStockGreaterThan(0)
+                .stream()
+                .map(product -> {
+                    ProductDto dto = new ProductDto();
+                    dto.setId(product.getId());
+                    dto.setName(product.getName());
+                    dto.setCategory(product.getCategory()); // Ensure Category is mapped correctly
+                    dto.setPrice(product.getPrice());
+                    dto.setStock(product.getStock());
+                    dto.setStatus(String.valueOf(product.getStatus()));
+                    dto.setImageUrl(product.getImageUrl());
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        if (productDtoList.isEmpty()) {
+            responseMap.put("message", "No product present or out of stock");
+            return new ResponseEntity<>(responseMap, HttpStatus.OK);
         }
+
+        responseMap.put("data", productDtoList);
+        responseMap.put("message", "Product List");
+        return new ResponseEntity<>(responseMap, HttpStatus.OK);
     }
     /**
      * Fetches a product by its name, ensuring it is not deleted and has stock greater than zero.
@@ -111,10 +127,10 @@ public class ProductServiceImp implements ProductService {
 
     public ResponseEntity<Object> fetchByName(String name) {
         Map<String, Object> map = new HashMap<>();
-        Products product = productRepo.findByNameAndIsDeletedFalseAndStockGreaterThan(name, 1);
+        Products product = productRepo.findByNameAndIsDeletedFalseAndStockGreaterThan(name, 0);
         if (product == null) {
             map.put("message", "Product Not Found by the name");
-            return new ResponseEntity<>(map, HttpStatus.OK);
+            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
         } else {
             map.put("message", "Product with the name");
             map.put("data", product);

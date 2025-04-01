@@ -1,7 +1,6 @@
 package com.Virima.ProductEcommerce.ServiceImplemantation;
 
 import com.Virima.ProductEcommerce.Entity.*;
-import com.Virima.ProductEcommerce.Exception.ProductException;
 import com.Virima.ProductEcommerce.Helper.EmailSender;
 import com.Virima.ProductEcommerce.Helper.HelperMethods;
 import com.Virima.ProductEcommerce.Repo.*;
@@ -10,7 +9,6 @@ import com.Virima.ProductEcommerce.Service.UsersService;
 import com.Virima.ProductEcommerce.dto.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,11 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 
-import java.time.LocalDateTime;
 import java.util.*;
-
-import static com.Virima.ProductEcommerce.Entity.ProductStatus.AVAILABLE;
-import static com.Virima.ProductEcommerce.Entity.ProductStatus.NOT_AVAILABLE;
 
 @Service
 public class UsersServiceImp implements UsersService {
@@ -104,10 +98,11 @@ public class UsersServiceImp implements UsersService {
         }
 
         // No validation errors, proceed with saving user
-        helperMethods.saveUser(user);
+       Users users= helperMethods.saveUser(user);
 
         Map<String, Object> map = new HashMap<>();
         map.put("message", "User added successfully");
+        map.put("data",users);
         return new ResponseEntity<>(map, HttpStatus.OK);
     }
 
@@ -127,6 +122,7 @@ public class UsersServiceImp implements UsersService {
      *         or an error message if the credentials are invalid.
      * @throws NullPointerException if the user is not found or any null values are encountered during login.
      */
+
     public ResponseEntity<Object> userLogin(UserloginDto user, HttpSession session) {
         Map<String, Object> response = new HashMap<>();
         Users users = usersRepo.findByusername(user.getUsername());
@@ -143,7 +139,8 @@ public class UsersServiceImp implements UsersService {
 
                     if (users.isVerified()) {
                         String token = jwtService.generateToken(users.getUsername(), users.getRole().getName());
-
+                        response.put("Role",users.getRole().getName());
+                        response.put("user",users);
 
                         response.put("message", "Login Successful");
                         response.put("token", token);  // Return JWT token
@@ -179,8 +176,8 @@ public class UsersServiceImp implements UsersService {
                 user.get().setVerified(true);
                 user.get().setOtp(0);
                 Wallet wallet = new Wallet();
-                wallet.setBalance((long) 0.0); // Initial balance
-                wallet.setUser(user.get()); // Set the user for wallet
+                wallet.setBalance((long) 0.0);
+                wallet.setUser(user.get());
                 user.get().setWallet(wallet);
                 walletRepo.save(wallet);
                 usersRepo.save(user.get());
@@ -196,24 +193,7 @@ public class UsersServiceImp implements UsersService {
         }
     }
 
-    /**
-     * Adds products to a user's active cart, validating stock availability and updating the cart's total amount.
-     *
-     * 1. Retrieves or creates an active cart for the user.
-     * 2. For each product in the cart request:
-     *    - Validates if the product exists, is available, and has enough stock.
-     *    - If the product is not already in the cart, creates a new cart item and adds it.
-     *    - If the product is already in the cart, updates the quantity.
-     * 3. Updates the stock of the product based on the cart's quantity and marks it as unavailable if stock runs out.
-     * 4. Updates the cart’s total amount and saves the cart.
-     * 5. Returns a 200 (OK) response with a success message if the products are successfully added to the cart.
-     *    - If any error occurs (e.g., product not found, insufficient stock), returns a corresponding error message.
-     *
-     * @param request The HTTP request containing user info.
-     * @param cart A list of CartRequest objects containing product IDs and quantities.
-     * @return A ResponseEntity with a success or error message and an appropriate HTTP status code.
-     * @throws ProductException If there is an issue with product retrieval or validation.
-     */
+
 
 
     /**
@@ -250,8 +230,17 @@ public class UsersServiceImp implements UsersService {
                 ordersDto.setTotalPrice(order.getTotalPrice());
                 ordersDto.setOrderStatus(order.getOrderStatus());
 
-                ordersDto.setCartId(order.getCart().getId());
-                ordersDto.setPromoCodeId(order.getPromoCode().getId());
+
+                if (order.getCart() != null) {
+                    ordersDto.setCartId(order.getCart().getId());
+                }
+
+
+                if (order.getPromoCode() != null) {
+                    ordersDto.setPromoCodeId(order.getPromoCode().getId());
+                } else {
+                    ordersDto.setPromoCodeId(null);
+                }
 
                 // Add the OrdersDto to the list
                 ordersDtoList.add(ordersDto);
@@ -317,6 +306,85 @@ public class UsersServiceImp implements UsersService {
             return new ResponseEntity<>(map, HttpStatus.OK);
         }
     }
+
+    public ResponseEntity<Object> resendOtp(int id) {
+        Map<String, Object> map = new HashMap<>();
+        Users user = usersRepo.findById(id).get();
+        int otp = new Random().nextInt(100000, 1000000);
+        user.setOtp(otp);
+        System.err.println(otp);
+         emailSender.sendOtp(user.getEmail(), otp, user.getFirstname());
+        usersRepo.save(user);
+       map.put("message","Otp resend successfull");
+       return new ResponseEntity<>(map,HttpStatus.OK);
+
+    }
+
+    public ResponseEntity<Object> updateProfile(UsersUpdateDto user, HttpServletRequest request) {
+        Users users = helperMethods.role(request);
+
+        if (users == null) {
+            return new ResponseEntity<>(Map.of("message", "User not found"), HttpStatus.NOT_FOUND);
+        }
+
+
+        if (user.getUsername() != null && !user.getUsername().equals(users.getUsername())) {
+            boolean usernameExists = userRepository.existsByUsername(user.getUsername());
+            if (usernameExists) {
+                return new ResponseEntity<>(Map.of("message", "Username already exists"), HttpStatus.BAD_REQUEST);
+            }
+        }
+
+
+        if (user.getEmail() != null && !user.getEmail().equals(users.getEmail())) {
+            boolean emailExists = userRepository.existsByEmail(user.getEmail());
+            if (emailExists) {
+                return new ResponseEntity<>(Map.of("message", "Email already exists"), HttpStatus.BAD_REQUEST);
+            }
+        }
+
+
+        if (user.getMobile() != 0 && user.getMobile() != users.getMobile()) {
+            boolean mobileExists = userRepository.existsByMobile(user.getMobile());
+            if (mobileExists) {
+                return new ResponseEntity<>(Map.of("message", "Mobile number already exists"), HttpStatus.BAD_REQUEST);
+            }
+        }
+
+
+        if (user.getFirstname() != null) users.setFirstname(user.getFirstname());
+        if (user.getLastname() != null) users.setLastname(user.getLastname());
+        if (user.getUsername() != null) users.setUsername(user.getUsername());
+        if (user.getEmail() != null) users.setEmail(user.getEmail());
+        if (user.getMobile() != 0) users.setMobile(user.getMobile());
+        if (user.getGender() != null) users.setGender(user.getGender());
+
+        userRepository.save(users);
+
+        return new ResponseEntity<>(Map.of("message", "User updated successfully", "data", users), HttpStatus.OK);
+    }
+
+    public ResponseEntity<Object> fetchProfile(HttpServletRequest request) {
+        Users user = helperMethods.role(request);
+
+        if (user == null) {
+            return new ResponseEntity<>(Map.of("message", "User not found"), HttpStatus.NOT_FOUND);
+        }
+
+        // Create response data without exposing sensitive details like password
+        Map<String, Object> userData = new HashMap<>();
+        userData.put("id", user.getId());
+        userData.put("firstname", user.getFirstname());
+        userData.put("lastname", user.getLastname());
+        userData.put("username", user.getUsername());
+        userData.put("email", user.getEmail());
+        userData.put("mobile", user.getMobile());
+        userData.put("gender", user.getGender());
+        userData.put("balance", user.getWallet().getBalance());
+
+        return new ResponseEntity<>(Map.of("message", "User details fetched successfully", "data", userData), HttpStatus.OK);
+    }
+
 }
 
 

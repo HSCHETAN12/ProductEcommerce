@@ -5,7 +5,9 @@ import com.Virima.ProductEcommerce.dto.CategoryDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
+
 
 @RestController
 public class CategoryController {
@@ -26,5 +28,15 @@ public class CategoryController {
         return categoryService.UpdateCategory(id,categoryDto);
     }
 
+    @GetMapping("/category")
+    public ResponseEntity<Object> fetchCategory()
+    {
+        return categoryService.fetchCategory();
+    }
+
+    @GetMapping("/{categoryName}/products")
+    public ResponseEntity<Object> getProductsByCategory(@PathVariable String categoryName) {
+        return categoryService.getProductsByCategory(categoryName);
+    }
     
 }

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import static com.Virima.ProductEcommerce.Entity.ProductStatus.AVAILABLE;
 import static com.Virima.ProductEcommerce.Entity.ProductStatus.NOT_AVAILABLE;
 
 @Service
@@ -56,7 +57,6 @@ public class CartServiceImp implements CartService {
         if (cart1.getCartItems() == null) {
             cart1.setCartItems(new ArrayList<>());
         }
-
 
 
         for (CartRequest productRequest : cart) {
@@ -118,11 +118,10 @@ public class CartServiceImp implements CartService {
     public ResponseEntity<Object> DeleteCartItems(int productId, HttpServletRequest request) throws ProductException {
         Map<String, Object> map = new HashMap<>();
         Users user = helperMethodsa.role(request);
-        Cart cart = cartRepo.findByUserIdAndStatus(user.getId(),"active");
-        if(cart==null)
-        {
+        Cart cart = cartRepo.findByUserIdAndStatus(user.getId(), "active");
+        if (cart == null) {
             throw new ProductException("Cart not found");
-        }else{
+        } else {
             CartItem cartItem = cart.getCartItems()
                     .stream().filter(item -> item.getProductId() == productId)
                     .findFirst().orElseThrow(() -> new RuntimeException("Product not in cart"));
@@ -131,6 +130,7 @@ public class CartServiceImp implements CartService {
                     .orElseThrow(() -> new ProductException("Product not found"));
 
             int updatedStock = product.getStock() + cartItem.getQuantity();
+            product.setStatus(AVAILABLE);
             product.setStock(updatedStock);
             productRepo.save(product);
 
@@ -140,8 +140,8 @@ public class CartServiceImp implements CartService {
             cart.getCartItems().remove(cartItem);
             cartItemRepo.delete(cartItem);
             cartRepo.save(cart);
-            map.put("message","product removed from the cart");
-            return new ResponseEntity<>(map,HttpStatus.OK);
+            map.put("message", "product removed from the cart");
+            return new ResponseEntity<>(map, HttpStatus.OK);
         }
     }
 
@@ -167,19 +167,29 @@ public class CartServiceImp implements CartService {
         cartDto.setTotalAmount(cart.getTotalAmount());
         cartDto.setStatus(cart.getStatus());
 
-        // Convert the CartItems to CartItemDto and set it to the CartDto
+        // Convert CartItems to CartItemDto and fetch product details
         List<CartItemDto> cartItemDtos = cart.getCartItems().stream().map(cartItem -> {
             CartItemDto cartItemDto = new CartItemDto();
             cartItemDto.setId(cartItem.getId());
             cartItemDto.setProductId(cartItem.getProductId());
             cartItemDto.setQuantity(cartItem.getQuantity());
+
+            // Fetch product details (name & image)
+            Products product = productRepo.findById(cartItem.getProductId()).orElse(null);
+            if (product != null) {
+                cartItemDto.setProductName(product.getName());
+                cartItemDto.setImageUrl(product.getImageUrl());
+            } else {
+                cartItemDto.setProductName("Unknown Product");  // Fallback if product not found
+                cartItemDto.setImageUrl("https://via.placeholder.com/150");
+            }
+
             return cartItemDto;
         }).collect(Collectors.toList());
 
-
         cartDto.setCartItems(cartItemDtos);
 
-        // Return the cart details with items
+        // Return the cart details with product info
         map.put("data", cartDto);
         return new ResponseEntity<>(map, HttpStatus.OK);
     }

@@ -3,6 +3,7 @@ package com.Virima.ProductEcommerce.Service;
 
 import com.Virima.ProductEcommerce.dto.UserloginDto;
 import com.Virima.ProductEcommerce.dto.UsersSignupDto;
+import com.Virima.ProductEcommerce.dto.UsersUpdateDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -18,4 +19,10 @@ public interface UsersService {
      ResponseEntity<Object> fetchuserorders(HttpServletRequest request);
      ResponseEntity<Object> fetchUser();
      ResponseEntity<Object> fetchUsers(int id);
+
+     ResponseEntity<Object> resendOtp(int id);
+
+     ResponseEntity<Object> updateProfile(UsersUpdateDto user, HttpServletRequest request);
+
+     ResponseEntity<Object> fetchProfile(HttpServletRequest request);
 }

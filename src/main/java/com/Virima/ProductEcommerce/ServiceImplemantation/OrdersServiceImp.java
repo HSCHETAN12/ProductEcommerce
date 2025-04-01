@@ -109,7 +109,7 @@ public class OrdersServiceImp implements OrdersService {
 
         if (orders.isEmpty()) {
             map.put("message", "No orders found for status: " + status);
-            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(map, HttpStatus.OK);
         }
 
         List<OrdersDto> ordersDtos = orders.getContent().stream().map(order -> {
@@ -165,7 +165,7 @@ public class OrdersServiceImp implements OrdersService {
         // Check if cart is found
         if (cart == null) {
             map.put("message", "No active cart found for the current user");
-            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(map, HttpStatus.OK);
         }
 
         // Fetch the promo code if present
@@ -174,13 +174,13 @@ public class OrdersServiceImp implements OrdersService {
         // Check if the user has an address
         if (user.getAddresses() == null || user.getAddresses().isEmpty()) {
             map.put("message", "Please add an address before proceeding with checkout");
-            return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(map, HttpStatus.OK);
         }
 
         Wallet wallet = walletRepo.findByUserId(user.getId());
         if (wallet == null) {
             map.put("message", "No active wallet found for the current user");
-            return new ResponseEntity<>(map, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(map, HttpStatus.OK);
         }
 
         double finalAmount = cart.getTotalAmount();
@@ -197,8 +197,8 @@ public class OrdersServiceImp implements OrdersService {
             order.setOrderStatus("Failed");
             orderRepository.save(order);
             checkOutMethods.logFailedTransaction(user.getId(), cart.getTotalAmount(), order.getId());
-            map.put("message", "Insufficient balance in the wallet");
-            return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
+            map.put("message", "Insufficient balance");
+            return new ResponseEntity<>(map, HttpStatus.OK);
         } else {
             // Proceed with payment (deduct wallet balance)
             wallet.setBalance(wallet.getBalance() - finalAmount);

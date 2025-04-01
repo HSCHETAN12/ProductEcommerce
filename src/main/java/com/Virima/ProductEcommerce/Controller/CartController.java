@@ -32,7 +32,7 @@ public class CartController {
     }
 
     @PreAuthorize("hasAuthority('ROLE_USER')")
-    @DeleteMapping("/cart/add")
+    @PatchMapping("/cart/remove")
     public ResponseEntity<Object> DeleteCartItems(@RequestParam int productId,HttpServletRequest request) throws ProductException {
         return cartService.DeleteCartItems(productId,request);
     }

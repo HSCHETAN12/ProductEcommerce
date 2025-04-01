@@ -17,7 +17,7 @@ public class Orders extends TrackingColumn {
     private int userId;
     private double totalPrice;
     private String orderStatus;
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "cart_id")
     @JsonIgnore
     private Cart cart;

@@ -18,5 +18,5 @@ public class OrdersDto {
     private int cartId;
 
 
-    private int promoCodeId;
+    private Integer  promoCodeId;
 }

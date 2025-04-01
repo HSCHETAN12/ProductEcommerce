@@ -44,9 +44,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
+                .cors(Customizer.withDefaults())
                 .csrf(customizer->customizer.disable())
                 .authorizeHttpRequests(requests->requests
-                        .requestMatchers("/verifiys/{id}","/signup","/userslogin","/adminlogin") .permitAll()
+                        .requestMatchers("/verifiys/{id}","/signup","/userslogin","/adminlogin","/resend-otp/{id}") .permitAll()
 //                        .requestMatchers("/users/**").hasAuthority("ROLE_USER")
 //                        .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/**")

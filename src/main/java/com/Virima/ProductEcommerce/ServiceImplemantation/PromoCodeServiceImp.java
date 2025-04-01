@@ -240,8 +240,8 @@ public class PromoCodeServiceImp implements PromoCodeService {
                 PromoCode promoCode1 = promocodeRepo.findByCode(code);
                 cart.setPromoCode(promoCode1);
                 cartRepo.save(cart);
-
-                map.put("message", "Promocode is applied successfully");
+                map.put("discount",totalDiscount);
+                map.put("success", "Promocode is applied successfully");
                 return new ResponseEntity<>(map, HttpStatus.OK);
             }
         }

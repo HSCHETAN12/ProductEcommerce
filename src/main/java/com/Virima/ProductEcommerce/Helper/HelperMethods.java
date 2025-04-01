@@ -66,8 +66,7 @@ public class HelperMethods {
         return new ResponseEntity<>(map, HttpStatus.BAD_REQUEST);
     }
 
-    public void saveUser(UsersSignupDto user) {
-        // Hash the password
+    public Users saveUser(UsersSignupDto user) {
         String hashedPassword = hashPassword(user.getPassword());
         user.setPassword(hashedPassword);
 
@@ -94,6 +93,7 @@ public class HelperMethods {
 
         // Save user to repository
         userRepository.save(users);
+        return users;
     }
 
     private String hashPassword(String password) {
